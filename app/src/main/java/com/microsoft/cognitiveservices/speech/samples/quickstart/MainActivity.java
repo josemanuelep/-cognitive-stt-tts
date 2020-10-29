@@ -10,6 +10,8 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.os.Environment;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -18,6 +20,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.microsoft.cognitiveservices.speech.ResultReason;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
@@ -36,7 +39,8 @@ import static android.Manifest.permission.*;
 import static com.microsoft.cognitiveservices.speech.samples.quickstart.Util.Constants.TXT_INSTRUCTIONS;
 
 public class MainActivity extends AppCompatActivity {
-    static final int REQUEST_IMAGE_CAPTURE = 1;
+    public static final int REQUEST_IMAGE_CAPTURE = 1;
+    public static final int REQUEST_AUDIO_PERMISSION_CODE = 1;
     // Replace below with your own subscription key
     private static String speechSubscriptionKey = "7614e5a304ac49c8b56930bd680da8e1";
     // Replace below with your own service region (e.g., "westus").
@@ -44,91 +48,33 @@ public class MainActivity extends AppCompatActivity {
     private SpeechConfig speechConfig;
     private SpeechSynthesizer synthesizer;
     //Record audio
-    private MediaRecorder recorder = null;
-    private MediaPlayer player = null;
-    private static final String LOG_TAG = "AudioRecordTest";
-    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
-    private static String fileName = null;
+    private MediaRecorder mRecorder;
+    private MediaPlayer mPlayer;
+    private static final String LOG_TAG = "AudioRecording";
+    private static String mFileName = null;
     private Timer timer = new Timer();
-    TimerTask timerTaskRecord = new TimerTask() {
-        @Override
-        public void run() {
-            stopRecording();
-        }
-    };
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         // Note: we need to request the permissions
-        int requestCode = 5; // unique code for the permission request
-        ActivityCompat.requestPermissions(MainActivity.this, new String[]{RECORD_AUDIO, INTERNET}, requestCode);
+//        int requestCode = 5; // unique code for the permission request
+//        ActivityCompat.requestPermissions(MainActivity.this, new String[]{RECORD_AUDIO, WRITE_EXTERNAL_STORAGE, INTERNET}, requestCode);
+        RequestPermissions();
+        mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
+        mFileName += "/AudioRecording.3gp";
 
-        // Record to the external cache directory for visibility
-        fileName = getExternalCacheDir().getAbsolutePath();
-        fileName += "/audiorecordtest.3gp";
-
-    }
-
-    private void onRecord(boolean start) {
-        if (start) {
-            startRecording();
-        } else {
-            stopRecording();
-        }
-    }
-
-    private void onPlay(boolean start) {
-        if (start) {
-            startPlaying();
-        } else {
-            stopPlaying();
-        }
-    }
-
-    private void startPlaying() {
-        player = new MediaPlayer();
-        try {
-            player.setDataSource(fileName);
-            player.prepare();
-            player.start();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, "prepare() failed");
-        }
-    }
-
-    private void stopPlaying() {
-        player.release();
-        player = null;
-    }
-
-    private void startRecording() {
-        recorder = new MediaRecorder();
-        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        recorder.setOutputFile(fileName);
-        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-
-        try {
-            recorder.prepare();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, "prepare() failed");
-        }
-
-        recorder.start();
-    }
-
-    private void stopRecording() {
-        recorder.stop();
-        recorder.release();
-        recorder = null;
     }
 
     public void onSpeechButtonClicked(View v) {
         TextView txt = (TextView) this.findViewById(R.id.hello); // 'hello' is the ID of your text view
+        TimerTask timerTaskStopRecord = new TimerTask() {
+            @Override
+            public void run() {
+                stopRecord();
+            }
+        };
         try {
 
             speechConfig = SpeechConfig.fromSubscription(speechSubscriptionKey, serviceRegion);
@@ -161,10 +107,13 @@ public class MainActivity extends AppCompatActivity {
                     txt.setText("Se han leido las isntrucciones");
                 }
                 if (result.getText().contains("Grabar audio")) {
-                    startRecording();
-                    timer.schedule(timerTaskRecord, 10000);
                     txt.setText("Se ha grabado el audio");
-                    startPlaying();
+                    startRecord();
+                    timer.schedule(timerTaskStopRecord, 10000);
+                }
+
+                if (result.getText().contains("Reproducir audio")) {
+                    playAudio();
                 }
 
                 Log.e("SpeechSDKDemo", "Speach " + result.getText());
@@ -226,6 +175,45 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void startRecord() {
+        mRecorder = new MediaRecorder();
+        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+        mRecorder.setOutputFile(mFileName);
+        try {
+            mRecorder.prepare();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "prepare() failed");
+        }
+        mRecorder.start();
+        Toast.makeText(getApplicationContext(), "Se empezo a grabar el audio", Toast.LENGTH_LONG).show();
+    }
+
+    private void stopRecord() {
+        mRecorder.stop();
+        mRecorder.release();
+        mRecorder = null;
+        Looper.prepare();
+        Toast.makeText(getApplicationContext(), "Se termino de grabar el audio", Toast.LENGTH_LONG).show();
+        Looper.loop();
+    }
+
+    private void playAudio() {
+        mPlayer = new MediaPlayer();
+        try {
+            mPlayer.setDataSource(mFileName);
+            mPlayer.prepare();
+            mPlayer.start();
+            Toast.makeText(getApplicationContext(), "Se empezo a reproducir la grabacion", Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "prepare() failed");
+        }
+    }
+
+    private void RequestPermissions() {
+        ActivityCompat.requestPermissions(MainActivity.this, new String[]{RECORD_AUDIO, WRITE_EXTERNAL_STORAGE, INTERNET}, REQUEST_AUDIO_PERMISSION_CODE);
+    }
 }
 
 
