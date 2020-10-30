@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Aplicación SST y TTS</string>
+    <string name="grabado">Se ha grabado el audio</string>
+    <string name="instrucciones">Se han leido las isntrucciones</string>
+    <string name="foto">Se ha tomado una foto</string>
+    <string name="errorReproduciendo">Error reconociendo voz</string>
 </resources>

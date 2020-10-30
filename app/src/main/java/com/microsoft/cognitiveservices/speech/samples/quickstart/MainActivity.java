@@ -36,6 +36,10 @@ import java.util.TimerTask;
 import java.util.concurrent.Future;
 
 import static android.Manifest.permission.*;
+import static com.microsoft.cognitiveservices.speech.samples.quickstart.Util.Constants.FOTO;
+import static com.microsoft.cognitiveservices.speech.samples.quickstart.Util.Constants.GRABAR;
+import static com.microsoft.cognitiveservices.speech.samples.quickstart.Util.Constants.INSTRUCCIONES;
+import static com.microsoft.cognitiveservices.speech.samples.quickstart.Util.Constants.REPRODUCIR;
 import static com.microsoft.cognitiveservices.speech.samples.quickstart.Util.Constants.TXT_INSTRUCTIONS;
 
 public class MainActivity extends AppCompatActivity {
@@ -77,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
             speechConfig = SpeechConfig.fromSubscription(speechSubscriptionKey, serviceRegion);
             speechConfig.setSpeechRecognitionLanguage("es-CO");
             speechConfig.setSpeechSynthesisLanguage("es-CO");
+
             assert (speechConfig != null);
 
             synthesizer = new SpeechSynthesizer(speechConfig);
@@ -88,34 +93,29 @@ public class MainActivity extends AppCompatActivity {
             Future<SpeechRecognitionResult> task = reco.recognizeOnceAsync();
             assert (task != null);
 
-            // Note: this will block the UI thread, so eventually, you want to
-            //        register for the event (see full samples)
             SpeechRecognitionResult result = task.get();
             assert (result != null);
 
             if (result.getReason() == ResultReason.RecognizedSpeech) {
-                txt.setText(result.getText());
-                if (result.getText().contains("foto")) {
+                if (result.getText().contains(FOTO)) {
                     dispatchTakePictureIntent();
-                    txt.setText("Se ha tomado una foto");
-                }
-                if (result.getText().contains("Instrucciones")) {
-                    speachIntructions(TXT_INSTRUCTIONS);
-                    txt.setText("Se han leido las isntrucciones");
-                }
-                if (result.getText().contains("Grabar audio")) {
-                    txt.setText("Se ha grabado el audio");
+                    txt.setText(R.string.foto);
+                } else if (result.getText().contains(INSTRUCCIONES)) {
+                    speachInstructions(TXT_INSTRUCTIONS);
+                    txt.setText(R.string.instrucciones);
+                } else if (result.getText().contains(GRABAR)) {
+                    txt.setText(R.string.grabado);
                     startRecord();
                     timer.schedule(timerTaskStopRecord, 10000);
-                }
-
-                if (result.getText().contains("Reproducir audio")) {
+                } else if (result.getText().contains(REPRODUCIR)) {
                     playAudio();
+                } else {
+                    Toast.makeText(getApplicationContext(), "No se reconoce la intencion, usa el comando informacion para ver los comandos disponibles", Toast.LENGTH_LONG).show();
                 }
 
                 Log.e("SpeechSDKDemo", "Speach " + result.getText());
             } else {
-                txt.setText("Error reconociendo voz" + System.lineSeparator() + result.toString());
+                txt.setText(getString(R.string.errorReproduciendo) + System.lineSeparator() + result.toString());
             }
 
             reco.close();
@@ -130,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         } catch (ActivityNotFoundException e) {
-            // display error state to the user
+
         }
     }
 
@@ -151,15 +151,14 @@ public class MainActivity extends AppCompatActivity {
         speechConfig.close();
     }
 
-    private void speachIntructions(String textToSay) {
-
+    private void speachInstructions(String textToSay) {
         try {
             // Note: this will block the UI thread, so eventually, you want to register for the event
             SpeechSynthesisResult result = synthesizer.SpeakText(textToSay);
             assert (result != null);
 
             if (result.getReason() == ResultReason.SynthesizingAudioCompleted) {
-//                outputMessage.setText("Speech synthesis succeeded.");
+
             } else if (result.getReason() == ResultReason.Canceled) {
                 String cancellationDetails =
                         SpeechSynthesisCancellationDetails.fromResult(result).toString();
