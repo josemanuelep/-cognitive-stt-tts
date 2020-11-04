@@ -7,8 +7,8 @@
 * A PC (Windows, Linux, Mac) que pueda ejecutar Android Studio.
 * Version 3.1 de [Android Studio](https://developer.android.com/studio/).
 * ARM-based Android device (API 23: Android 6.0 Marshmallow or higher) [Disponible para desarrollo](https://developer.android.com/studio/debug/dev-options) con un microfono funcional
-* Dispositivo Fisico para probar el correcto funcionamiento
-
+* Dispositivo fisico para probar el correcto funcionamiento
+* Conocimientos basicos sobre Android Studio
 
 ## Referencias
 
