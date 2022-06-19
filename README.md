@@ -2,6 +2,7 @@
 
 Reto tecnico para ingresar a una compañia
 
+
 ## Pre-requisitos
 
 * Una suscripcion a Speech service de Azure
